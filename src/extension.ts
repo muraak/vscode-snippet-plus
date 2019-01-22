@@ -1,96 +1,116 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import * as fs from 'fs';
+import * as path from 'path';
 
-// this method is called when your extension is activated
-// your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "vscode-snippet-plus" is now active!');
+	let disposable = vscode.commands.registerCommand('extension.helloWorld', () => { Parse(context) });
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	let disposable = vscode.commands.registerCommand('extension.helloWorld', () => {
+	let provider = vscode.languages.registerCompletionItemProvider('plaintext', {
+		provideCompletionItems(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken, compeletion_context: vscode.CompletionContext) {
 
-		let editor = vscode.window.activeTextEditor;
-		if (editor) {
-			let c_snippets = fs.readFileSync(vscode.Uri.parse("C:\\Users\\BG17059\\AppData\\Roaming\\Code\\User\\snippets\\c_test.json").fsPath, "utf-8");
+			let items: vscode.CompletionItem[] = [];
 
-			// remove comment
-			var stripJsonComments = require('strip-json-comments');
-			c_snippets = stripJsonComments(c_snippets);
-			// remove last cammma(e.g./\,\s*(\]|\})/)
-			// RESTRICTION!: In following function, we can't recognize last comma in the double quatation area "".
-			c_snippets = c_snippets.replace(/\,(\s*[\]\}])/g, "$1");
+			Parse(context)!.forEach(it => {
+				let item = new vscode.CompletionItem(it.name);
+				item.insertText = new vscode.SnippetString(it.body);
+				items.push(item);
+			});
 
-			try {
-				let c_snippet_obj = JSON.parse(c_snippets);
-
-				// for(var propertyName in c_snippet_obj) {
-				// 	console.log(propertyName);
-				//  }
-
-				let snippet_src = "";
-
-				c_snippet_obj["else if 規約"].body.forEach((element: any) => {
-
-					snippet_src += element + "\n";
-				});
-
-				snippet_src = preParse(c_snippet_obj, snippet_src);
-
-				editor.insertSnippet(new vscode.SnippetString(snippet_src));
-			}
-			catch (e) {
-				console.log(e.message);
-			}
+			return items;
 		}
 	});
 
-	function preParse(json: any, text: string) {
+	context.subscriptions.push(provider, disposable);
+}
 
-		text = asignLocalVariables(json, text);
-		text = asignConfigVariables(text);
-
-		return text;
-	}
-
-	function asignLocalVariables(json: any, text: string) {
-		
-		json["$VALUABLES$"].forEach((element: any) => {
-			text = text.replace(new RegExp(`\\$\{${element.name}\}`, 'g'), element.value);
-		});
-
-		return text;
-	}
-
-	function asignConfigVariables(text: string) {
-		
-		return text.replace(/\$\{CONFIG\s*:\s*(\w+)\}/g, (match, args) => {
-			 return getConfigValue(args); });
-	}
-
-	function getConfigValue(name :string) {
+function Parse(context: vscode.ExtensionContext) {
+	let editor = vscode.window.activeTextEditor;
+	if (editor) {
+		// let c_snippets = fs.readFileSync(vscode.Uri.parse("C:\\Users\\BG17059\\AppData\\Roaming\\Code\\User\\snippets\\c_test.json").fsPath, "utf-8");
+		let c_snippets = fs.readFileSync(path.join(context.extensionPath, 'snippets', 'test.code-snippets'), 'utf-8');
+		// remove comment
+		var stripJsonComments = require('strip-json-comments');
+		c_snippets = stripJsonComments(c_snippets);
+		// remove last cammma(e.g./\,\s*(\]|\})/)
+		// RESTRICTION!: In following function, we can't recognize last comma in the double quatation area "".
+		c_snippets = c_snippets.replace(/\,(\s*[\]\}])/g, "$1");
 
 		try {
-		 let variables :any[] | undefined 
-		 	= vscode.workspace.getConfiguration("snipp")!.get("variables");
-		
+			let c_snippet_obj = JSON.parse(c_snippets);
 
-		 if(variables){
-			return variables.find((value :any) => {return value.name === name;})!.value;
-		 }
+			// for(var propertyName in c_snippet_obj) {
+			// 	console.log(propertyName);
+			//  }
+
+			let snippets: { name: string, body: string }[] = [];
+
+			for (var it in c_snippet_obj) {
+				let snippet: { name: string, body: string } = { name: "", body: "" };
+				snippet.name = it.toString();
+				let snippet_txt = "";
+				let body = c_snippet_obj[it].body;
+
+				if (body) {
+					c_snippet_obj[it].body.forEach((element: any) => {
+						snippet_txt += element + "\n";
+					});
+
+					body = preParse(c_snippet_obj, snippet_txt);
+					snippet.body = body;
+
+					snippets.push(snippet);
+				}
+			}
+
+			return snippets;
 		}
-		catch{
-			console.error(`configuration variable \"${name}\" is not defined.`);
+		catch (e) {
+			console.log(e.message);
 		}
 	}
+}
 
-	context.subscriptions.push(disposable);
+function preParse(json: any, text: string) {
+
+	text = asignLocalVariables(json, text);
+	text = asignConfigVariables(text);
+
+	return text;
+}
+
+function asignLocalVariables(json: any, text: string) {
+
+	if (Array.isArray(json["$VALIABLES$"]) === true) {
+		json["$VALIABLES$"].forEach((element: any) => {
+			text = text.replace(new RegExp(`\\$\{${element.name}\}`, 'g'), element.value);
+		});
+	}
+
+	return text;
+}
+
+function asignConfigVariables(text: string) {
+
+	return text.replace(/\$\{CONFIG\s*:\s*(\w+)\}/g, (match, args) => {
+		return getConfigValue(args);
+	});
+}
+
+function getConfigValue(name: string) {
+
+	try {
+		let variables: any[] | undefined
+			= vscode.workspace.getConfiguration("snipp", null)!.get("variables");
+
+
+		if (variables) {
+			return variables.find((value: any) => { return value.name === name; })!.value;
+		}
+	}
+	catch{
+		console.error(`configuration variable \"${name}\" is not defined.`);
+	}
 }
 
 // this method is called when your extension is deactivated

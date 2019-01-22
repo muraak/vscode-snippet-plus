@@ -20,16 +20,16 @@
 				"title": "Hello World"
 			}
 		],
-		"configuration" : {
+		"configuration": {
 			"type": "object",
 			"title": "vscode snippet plus configuration",
 			"properties": {
-                "snipp.variables": {
-                    "scope": "resource",
-                    "type": "array",
-                    "default": []
-                }
-            }
+				"snipp.variables": {
+					"scope": "resource",
+					"type": "array",
+					"default": []
+				}
+			}
 		}
 	},
 	"scripts": {
