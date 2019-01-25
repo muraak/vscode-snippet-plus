@@ -4,18 +4,18 @@ import * as path from 'path';
 
 export function activate(context: vscode.ExtensionContext) {
 
-	let disposable = vscode.commands.registerCommand('extension.helloWorld', () => { Parse(context); });
+	let disposable = vscode.commands.registerCommand('extension.helloWorld', () => { });
 
 	let provider = vscode.languages.registerCompletionItemProvider({pattern: "**/*"}, {
 		provideCompletionItems(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken, compeletion_context: vscode.CompletionContext) {
 
 			let items: vscode.CompletionItem[] = [];
 
-			Parse(context)!.forEach(it => {
+			parse(context)!.forEach(it => {
 				let item = new vscode.CompletionItem(it.name);
 				item.insertText = new vscode.SnippetString(it.body);
 				// prefix word that make this compeletion fire.
-				item.filterText = "laz";
+				item.filterText = it.prefix;
 				items.push(item);
 			});
 
@@ -26,7 +26,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(provider, disposable);
 }
 
-function Parse(context: vscode.ExtensionContext) {
+function parse(context: vscode.ExtensionContext) : {name: string, body: string, prefix: string}[] | undefined{
 	let editor = vscode.window.activeTextEditor;
 	if (editor) {
 		let snippets_txt = fs.readFileSync(path.join(context.extensionPath, 'snippets', 'test_msw.code-snippets'), 'utf-8');
@@ -40,10 +40,10 @@ function Parse(context: vscode.ExtensionContext) {
 		try {
 			let snippet_json = JSON.parse(snippets_txt);
 
-			let snippets: { name: string, body: string }[] = [];
+			let snippets: { name: string, body: string, prefix: string }[] = [];
 
 			for (var it in snippet_json) {
-				let snippet: { name: string, body: string } = { name: "", body: "" };
+				let snippet: { name: string, body: string, prefix: string} = { name: "", body: "", prefix: "" };
 				snippet.name = it.toString();
 				let snippet_txt = "";
 				let body = snippet_json[it].body;
@@ -55,6 +55,7 @@ function Parse(context: vscode.ExtensionContext) {
 
 					body = preParse(snippet_json, snippet_txt);
 					snippet.body = body;
+					snippet.prefix = (snippet_json[it].prefix) ? snippet_json[it].prefix : "snippp";
 
 					snippets.push(snippet);
 				}
