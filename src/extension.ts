@@ -34,7 +34,7 @@ function Parse(context: vscode.ExtensionContext) {
 		var stripJsonComments = require('strip-json-comments');
 		snippets_txt = stripJsonComments(snippets_txt);
 		// remove last cammma(e.g./\,\s*(\]|\})/)
-		// RESTRICTION!: In following function, we can't recognize last comma in the double quatation area "".
+		// RESTRICTION!: In following function, we also remove last comma in the double quatation area "".
 		snippets_txt = snippets_txt.replace(/\,(\s*[\]\}])/g, "$1");
 
 		try {
