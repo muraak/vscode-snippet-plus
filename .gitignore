@@ -2,3 +2,4 @@ out
 node_modules
 .vscode-test/
 *.vsix
+snippets/test_msw.code-snippets

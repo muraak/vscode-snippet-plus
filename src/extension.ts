@@ -4,9 +4,9 @@ import * as path from 'path';
 
 export function activate(context: vscode.ExtensionContext) {
 
-	let disposable = vscode.commands.registerCommand('extension.helloWorld', () => { Parse(context) });
+	let disposable = vscode.commands.registerCommand('extension.helloWorld', () => { Parse(context); });
 
-	let provider = vscode.languages.registerCompletionItemProvider('plaintext', {
+	let provider = vscode.languages.registerCompletionItemProvider({pattern: "**/*"}, {
 		provideCompletionItems(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken, compeletion_context: vscode.CompletionContext) {
 
 			let items: vscode.CompletionItem[] = [];
@@ -14,6 +14,8 @@ export function activate(context: vscode.ExtensionContext) {
 			Parse(context)!.forEach(it => {
 				let item = new vscode.CompletionItem(it.name);
 				item.insertText = new vscode.SnippetString(it.body);
+				// prefix word that make this compeletion fire.
+				item.filterText = "laz";
 				items.push(item);
 			});
 
@@ -27,36 +29,31 @@ export function activate(context: vscode.ExtensionContext) {
 function Parse(context: vscode.ExtensionContext) {
 	let editor = vscode.window.activeTextEditor;
 	if (editor) {
-		// let c_snippets = fs.readFileSync(vscode.Uri.parse("C:\\Users\\BG17059\\AppData\\Roaming\\Code\\User\\snippets\\c_test.json").fsPath, "utf-8");
-		let c_snippets = fs.readFileSync(path.join(context.extensionPath, 'snippets', 'test.code-snippets'), 'utf-8');
+		let snippets_txt = fs.readFileSync(path.join(context.extensionPath, 'snippets', 'test_msw.code-snippets'), 'utf-8');
 		// remove comment
 		var stripJsonComments = require('strip-json-comments');
-		c_snippets = stripJsonComments(c_snippets);
+		snippets_txt = stripJsonComments(snippets_txt);
 		// remove last cammma(e.g./\,\s*(\]|\})/)
 		// RESTRICTION!: In following function, we can't recognize last comma in the double quatation area "".
-		c_snippets = c_snippets.replace(/\,(\s*[\]\}])/g, "$1");
+		snippets_txt = snippets_txt.replace(/\,(\s*[\]\}])/g, "$1");
 
 		try {
-			let c_snippet_obj = JSON.parse(c_snippets);
-
-			// for(var propertyName in c_snippet_obj) {
-			// 	console.log(propertyName);
-			//  }
+			let snippet_json = JSON.parse(snippets_txt);
 
 			let snippets: { name: string, body: string }[] = [];
 
-			for (var it in c_snippet_obj) {
+			for (var it in snippet_json) {
 				let snippet: { name: string, body: string } = { name: "", body: "" };
 				snippet.name = it.toString();
 				let snippet_txt = "";
-				let body = c_snippet_obj[it].body;
+				let body = snippet_json[it].body;
 
 				if (body) {
-					c_snippet_obj[it].body.forEach((element: any) => {
+					snippet_json[it].body.forEach((element: any) => {
 						snippet_txt += element + "\n";
 					});
 
-					body = preParse(c_snippet_obj, snippet_txt);
+					body = preParse(snippet_json, snippet_txt);
 					snippet.body = body;
 
 					snippets.push(snippet);
